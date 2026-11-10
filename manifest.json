@@ -1,0 +1,45 @@
+{
+  "name": "Gamelle & Panier",
+  "short_name": "Gamelle & Panier",
+  "description": "Menus sains de saison, 4 portions et liste de courses optimisée pour Grand Frais.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#10B981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "lang": "fr",
+  "scope": "./",
+  "dir": "ltr",
+  "categories": [
+    "food",
+    "lifestyle",
+    "shopping"
+  ]
+}

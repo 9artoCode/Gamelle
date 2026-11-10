@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Gamelle & Panier - Menus & Courses</title>
+  
+  <!-- Configuration PWA & Apple iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Gamelle & Panier">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#059669">
+  
+  
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="tailwind.css">
+  <script>
+    // Thème : « system » (suit l'iPhone), « light » ou « dark ». Réglable dans Réglages > Apparence.
+    (function () {
+      var KEY = 'gamelle_theme';
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      function getPref() {
+        try {
+          var v = localStorage.getItem(KEY);
+          if (v === 'light' || v === 'dark') return v;
+        } catch (e) {}
+        return 'system';
+      }
+      function apply() {
+        var pref = getPref();
+        var dark = pref === 'dark' || (pref === 'system' && mq.matches);
+        document.documentElement.classList.toggle('dark', dark);
+        var tc = document.querySelector('meta[name="theme-color"]');
+        if (tc) tc.setAttribute('content', dark ? '#1c1c1e' : '#059669');
+        var bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+        if (bar) bar.setAttribute('content', dark ? 'black' : 'default');
+      }
+      window.gamelleTheme = {
+        get: getPref,
+        set: function (pref) {
+          try {
+            if (pref === 'system') localStorage.removeItem(KEY);
+            else localStorage.setItem(KEY, pref);
+          } catch (e) {}
+          apply();
+        }
+      };
+      apply();
+      if (mq.addEventListener) mq.addEventListener('change', apply);
+      else if (mq.addListener) mq.addListener(apply);
+    })();
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <!-- EN-TÊTE FIXE SUPÉRIEURE -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm safe-top">
+    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <img src="logo.svg" alt="" width="40" height="40" class="w-10 h-10 rounded-[22%] shadow-md shadow-brand-500/20 flex-shrink-0">
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 leading-none">Gamelle & Panier</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Badge statut Foyer en Direct -->
+        <button id="header-sync-pill" class="hidden items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs hover:bg-emerald-100 transition-all" title="Synchronisation Foyer active (cliquez pour voir)">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="header-sync-label">Foyer actif</span>
+        </button>
+
+        <!-- SÉLECTEUR DE PORTIONS (Fixé par défaut à 4) -->
+        
+        <div class="flex items-center bg-slate-100 rounded-full px-2 py-1 border border-slate-200">
+          <button id="btn-portion-minus" class="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-700 font-bold shadow-sm active:scale-95 text-sm leading-none" title="Moins de portions">-</button>
+          <span id="current-portions-badge" class="px-2.5 text-xs font-bold text-brand-700">4 parts</span>
+          <button id="btn-portion-plus" class="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-700 font-bold shadow-sm active:scale-95 text-sm leading-none" title="Plus de portions">+</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEUR PRINCIPAL DES VUES -->
+  <main class="max-w-xl mx-auto px-4 py-4">
+
+    <!-- ========================================== -->
+    <!-- ONGLET 1 : PLANNING DE LA SEMAINE (7 REPAS) -->
+    <!-- ========================================== -->
+    <section id="tab-planning" class="tab-content active space-y-4">
+      
+      <!-- Bannière d'actions rapides -->
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-4 text-white shadow-lg shadow-emerald-900/10 space-y-3">
+        <div class="flex justify-between items-center gap-2">
+          <div>
+            <h2 class="text-lg font-bold">Mes repas au menu</h2>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button id="btn-planning-add-recipe" class="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-2.5 py-2 rounded-xl backdrop-blur-sm active:scale-95 transition-all flex items-center gap-1" title="Créer ma propre recette maison">
+              <span>➕</span> Ma recette
+            </button>
+            <button id="btn-generate-menu" class="bg-white text-emerald-800 text-xs font-bold px-3 py-2 rounded-xl shadow hover:bg-emerald-50 active:scale-95 transition-all flex items-center gap-1.5" title="Générer ou renouveler les repas de la semaine">
+              <span>✨</span> 7 repas
+            </button>
+          </div>
+        </div>
+
+        <!-- Raccourcis pour plats restants & menus sauvegardés -->
+        <div class="pt-2 border-t border-white/20 flex items-center justify-between gap-1.5 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button id="btn-save-current-menu" class="bg-white/15 hover:bg-white/25 active:scale-95 text-white font-medium text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all" title="Enregistrer le menu en cours">
+              <span>💾</span> Sauvegarder
+            </button>
+          </div>
+          <button id="btn-open-saved-menus" class="bg-white/15 hover:bg-white/25 active:scale-95 text-white font-medium text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+            <span>📂</span> Mes menus (<span id="saved-menus-count">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Liste des plats au menu -->
+      <div id="weekly-days-list" class="space-y-3">
+        <!-- Rempli dynamiquement en JS -->
+      </div>
+
+      <!-- Bouton réinitialiser -->
+      <div class="text-center pt-2">
+        <button id="btn-clear-menu" class="text-xs text-slate-400 hover:text-red-500 font-medium transition-colors">
+          Vider la liste des repas
+        </button>
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- ONGLET 2 : LISTE DE COURSES (RAYONS GRAND FRAIS)        -->
+    <!-- ======================================================= -->
+    <section id="tab-courses" class="tab-content space-y-4">
+      
+      <!-- En-tête des courses -->
+      <div class="ios-card p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h2 class="font-bold text-slate-800 text-base">Courses à Grand Frais</h2>
+            <p id="courses-stats-label" class="text-xs text-slate-500 font-medium">0 / 0 article coché</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-copy-groceries" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg active:scale-95 transition-all flex items-center gap-1" title="Copier pour WhatsApp ou Notes">
+              📋 <span>Copier</span>
+            </button>
+            <button id="btn-clear-checked" class="bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 text-xs font-semibold px-2.5 py-1.5 rounded-lg active:scale-95 transition-all" title="Supprimer les articles cochés">
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <!-- Barre de progression -->
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div id="courses-progress-bar" class="bg-brand-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- AJOUT RAPIDE D'ARTICLES COURANTS (HORS RECETTES) -->
+      <div class="ios-card p-3.5 space-y-2.5">
+        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+          <span>🛒</span> Ajouter un produit courant
+        </div>
+        <form id="form-add-staple" class="flex gap-2">
+          <input type="text" id="staple-input" placeholder="Ex: Bananes, Lait, Kéfir, Yaourts, Flocons d'avoine..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium">
+          <button type="submit" class="bg-brand-600 text-white font-bold px-3 py-2 rounded-xl text-xs active:scale-95 hover:bg-brand-700">
+            + Ajouter
+          </button>
+        </form>
+
+        <!-- Pastilles suggestions en 1 tap -->
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Bananes">🍌 + Banane</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Lait">🥛 + Lait</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Fruits de saison">🍎 + Fruits</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Kéfir">🥛 + Kéfir</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Yaourts">🥣 + Yaourt</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Pain de mie">🍞 + Pain de mie</button>
+          <button type="button" class="staple-quick-btn text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-medium" data-name="Flocons d'avoine">🌾 + Flocons d'avoine</button>
+        </div>
+      </div>
+
+      <!-- CONTENEUR DES RAYONS GRAND FRAIS -->
+      <div id="grand-frais-aisles-container" class="space-y-3">
+        <!-- Rempli dynamiquement par rayon -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ONGLET 3 : CATALOGUE DES RECETTES         -->
+    <!-- ========================================== -->
+    <section id="tab-recettes" class="tab-content space-y-4">
+      
+      <!-- Barre de recherche et filtre -->
+      <div class="space-y-2.5">
+        <div class="relative">
+          <input type="text" id="recipe-search-input" placeholder="Rechercher un plat, ingrédient (saumon, butternut...)" class="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <span class="absolute left-3.5 top-2.5 text-slate-400 text-sm">🔍</span>
+        </div>
+
+        <!-- Filtres catégories -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <button class="filter-btn active whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-brand-600 text-white shadow-sm" data-filter="all">Tous les plats</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="budget">💰 Pas cher</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="automne">🍁 Automne</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="express">⚡ < 20 min</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="volaille">🍗 Volaille</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="viande">🥩 Viande</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="poisson">🐟 Poisson</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="vege">🌱 Végétarien</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="hiver">❄️ Hiver</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="favoris">&#x2764;&#xFE0F; Favoris</button>
+          <button class="filter-btn whitespace-nowrap px-3 py-1.5 rounded-full font-semibold bg-white text-slate-600 border border-slate-200" data-filter="maison">⭐ Mes recettes</button>
+        </div>
+      </div>
+
+      <!-- Barre d'outils du catalogue : Tri et ajout -->
+      <div class="flex justify-between items-center px-1 gap-2 flex-wrap">
+        <span id="recipes-count-label" class="text-xs font-semibold text-slate-500">36 plats disponibles</span>
+        <div class="flex items-center gap-2">
+          <select id="recipe-sort-select" class="bg-white text-[11px] font-bold text-slate-700 rounded-xl px-2.5 py-1 border border-slate-200 shadow-sm outline-none">
+            <option value="default">Trier : Recommandé</option>
+            <option value="budget">💰 Moins cher d'abord</option>
+            <option value="fastest">⏱️ Plus rapide</option>
+          </select>
+          <button id="btn-open-add-recipe" class="text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-xs active:scale-95 transition-all">
+            <span>➕</span> Ajouter une recette
+          </button>
+        </div>
+      </div>
+
+      <!-- Grille des recettes -->
+      <div id="recipes-catalog-grid" class="grid grid-cols-1 gap-3.5">
+        <!-- Rempli dynamiquement en JS -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ONGLET 4 : PARTAGER AVEC MON CONJOINT     -->
+    <!-- ========================================== -->
+    <section id="tab-partager" class="tab-content space-y-4">
+
+      <!-- Apparence : Clair / Sombre / Système (propre à chaque appareil) -->
+      <div class="ios-card p-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-700 flex-shrink-0">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+          </div>
+          <div class="min-w-0">
+            <h2 class="text-sm font-bold text-slate-800">Apparence</h2>
+            <p id="theme-hint" class="text-xs text-slate-500">Suit automatiquement le réglage de votre iPhone</p>
+          </div>
+        </div>
+        <div class="seg" role="group" aria-label="Apparence de l'application">
+          <button type="button" class="seg-btn" data-theme-pref="light" aria-pressed="false">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            Clair
+          </button>
+          <button type="button" class="seg-btn" data-theme-pref="dark" aria-pressed="false">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z"/></svg>
+            Sombre
+          </button>
+          <button type="button" class="seg-btn" data-theme-pref="system" aria-pressed="false">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+            Système
+          </button>
+        </div>
+      </div>
+
+      <div class="ios-card p-5 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-2xl">
+            📲
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-800">Partager avec votre conjoint(e)</h2>
+            <p class="text-xs text-slate-500">Pour avoir le même menu et la même liste sur vos deux iPhones</p>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-3 space-y-3">
+          
+          <!-- Option 0 : Synchronisation Automatique en Direct (Foyer Partagé) -->
+          <div class="bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-brand-500/10 p-4 rounded-2xl border-2 border-emerald-500/40 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚡</span>
+                <div>
+                  <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Synchronisation en Direct (Foyer)</h3>
+                  <p class="text-[11px] text-slate-500">Même menu, mêmes recettes et courses cochées en direct sans aucun transfert !</p>
+                </div>
+              </div>
+              <span id="sync-status-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 flex items-center gap-1.5 flex-shrink-0">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span> Inactif
+              </span>
+            </div>
+
+            <!-- Si Foyer Non Connecté -->
+            <div id="sync-setup-box" class="space-y-2.5 pt-1">
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Définissez un <strong>Code Foyer</strong> (ex: <code class="bg-white px-1.5 py-0.5 rounded text-brand-700 font-bold border border-slate-200">JEREMY-CHLOE</code>). Votre compagne saisit le même code sur son téléphone (ou clique sur votre lien), et vos deux téléphones sont <strong>jumelés en temps réel</strong> !
+              </p>
+              <div class="flex gap-2">
+                <input type="text" id="input-household-code" placeholder="Ex : FOYER-7K2M-9QXD-4TNB" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Code du foyer" class="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-800 outline-none focus:ring-2 focus:ring-brand-500">
+                <button id="btn-join-household" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs active:scale-95 transition-all">
+                  Connecter
+                </button>
+              </div>
+              <div class="flex justify-between items-center pt-0.5 text-[11px]">
+                <button id="btn-generate-household-code" class="text-brand-600 hover:text-brand-700 font-semibold underline">
+                  🎲 Générer un code foyer automatique
+                </button>
+              </div>
+            </div>
+
+            <!-- Si Foyer Connecté -->
+            <div id="sync-active-box" class="hidden space-y-2.5 pt-1">
+              <div class="bg-white p-3 rounded-xl border border-emerald-200 flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] uppercase font-bold text-emerald-700 block">Code Foyer Jumelé</span>
+                  <span id="active-household-code-label" class="text-sm font-black text-slate-800 tracking-wider font-mono">JEREMY-CHLOE</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="btn-copy-sync-code" class="text-xs text-slate-600 hover:text-slate-900 font-semibold bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors" title="Copier le code foyer">
+                    📋 Copier
+                  </button>
+                  <button id="btn-disconnect-household" class="text-xs text-red-500 hover:text-red-700 font-semibold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors">
+                    Déconnecter
+                  </button>
+                </div>
+              </div>
+              <p class="text-[11px] text-emerald-800 leading-relaxed flex items-center gap-1.5">
+                <span>🟢</span> <span><strong>Synchronisation temps réel active</strong> : si elle ajoute une recette, vous la voyez immédiatement. Si vous cochez un article à Grand Frais, il se coche en direct chez elle.</span>
+              </p>
+              <div class="flex gap-2">
+                <button id="btn-force-sync" class="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold py-2 rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5">
+                  <span>🔄</span> Forcer la synchronisation maintenant
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Option 1 : Lien Magique Tout-en-un (Recettes + Articles courants + Plats conservés) -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+              <span>🔗</span> Option 1 : Le Lien Magique Tout-en-un
+            </h3>
+            <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+              Transfère <strong>l'intégralité</strong> de votre application : vos 7 repas, vos plats protégés et <strong>tous vos articles courants ajoutés (bananes, lait, kéfir, yaourts...)</strong>. Envoyez-le par SMS, WhatsApp ou AirDrop : votre compagne clique dessus et son app a exactement la même liste !
+            </p>
+            <button id="btn-share-magic-link" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+              <span>📤</span> Envoyer le lien complet à ma compagne
+            </button>
+          </div>
+
+          <!-- Option 2 : Vraie Synchronisation en direct à Grand Frais (Apple Rappels / Notes) -->
+          <div class="bg-emerald-50/90 p-3.5 rounded-xl border border-emerald-200 text-emerald-950">
+            <h3 class="text-xs font-bold mb-1 flex items-center gap-1.5 text-emerald-900">
+              <span>⚡</span> Option 2 : La synchro en direct dans les rayons (iPhone à iPhone)
+            </h3>
+            <p class="text-xs text-emerald-800 mb-3 leading-relaxed">
+              Pour cocher les courses à deux en direct dans les rayons de Grand Frais avec mise à jour instantanée sans délai : créez une liste partagée dans l'application native <strong>Apple « Rappels »</strong> ou <strong>« Notes »</strong> sur vos iPhones. Cliquez ci-dessous pour copier toute la liste déjà classée par rayon avec des cases à cocher :
+            </p>
+            <button id="btn-share-whatsapp-text" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+              <span>📋</span> Copier la liste pour Apple Notes / Rappels
+            </button>
+          </div>
+
+          <!-- Option 3 : Code QR direct à scanner d'iPhone à iPhone -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+              <span>📷</span> Option 3 : Scanner le Code QR entre téléphones
+            </h3>
+            <p class="text-xs text-slate-500 mb-2 leading-relaxed">
+              Votre compagne ouvre l'appareil photo de son iPhone et pointe cet écran : le menu de 7 repas, les articles courants (œufs, lait...) et les courses se synchronisent en 1 seconde !
+            </p>
+            <button type="button" id="btn-show-qr" class="w-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 rounded-xl active:scale-95 transition-all">
+              Afficher le code QR
+            </button>
+            <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">Le QR est généré par un service en ligne (qrserver.com) : il ne s'affiche qu'à votre demande.</p>
+            <div id="share-qr-box" class="hidden mt-2"><div class="bg-white p-3 rounded-2xl border border-slate-200 flex flex-col items-center justify-center">
+              <img id="share-qr-image" src="" alt="Code QR de partage" class="w-48 h-48 object-contain rounded-xl">
+              <span class="text-[10px] text-slate-400 mt-2 font-medium">📱 Scannez avec l'appareil photo de l'autre iPhone</span>
+            </div></div>
+          </div>
+
+
+        </div>
+      </div>
+
+      <!-- Sauvegarde locale -->
+      <div class="ios-card p-4 flex justify-between items-center text-xs">
+        <div>
+          <span class="font-bold text-slate-800 block">Sauvegarde de vos données</span>
+          <span class="text-slate-500">Vos repas et listes restent stockés dans votre téléphone</span>
+        </div>
+        <button id="btn-export-json" class="text-xs font-bold text-brand-600 hover:text-brand-700 border border-brand-200 px-3 py-1.5 rounded-lg active:scale-95">
+          Exporter (JSON)
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 0 : FICHE DÉTAILLÉE DE LA RECETTE (INGRÉDIENTS & INFOS)-->
+  <!-- ============================================================ -->
+  <div id="recipe-detail-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-lg h-[92vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+      
+      <!-- En-tête avec image -->
+      <div class="relative h-44 w-full flex-shrink-0 bg-slate-900">
+        <img id="detail-recipe-image" src="" alt="" onerror="this.onerror=null; this.src='https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800';" class="w-full h-full object-cover opacity-85">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30"></div>
+        <button id="btn-detail-fav" class="absolute top-4 right-14 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-bold text-sm backdrop-blur-sm active:scale-95 transition-transform" title="Favori">
+          <span id="detail-fav-icon" class="flex items-center justify-center"></span>
+        </button>
+        <button id="btn-close-detail" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-bold text-sm backdrop-blur-sm active:scale-95">
+          ✕
+        </button>
+        <div class="absolute bottom-3 left-4 right-4 text-white">
+          <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span id="detail-recipe-tag" class="text-[10px] font-bold uppercase tracking-wider bg-emerald-600/90 text-white px-2 py-0.5 rounded-full">Tag</span>
+            <span id="detail-recipe-budget" class="text-[10px] font-bold uppercase tracking-wider bg-amber-500/90 text-white px-2 py-0.5 rounded-full hidden">💰 Petit budget</span>
+            <span id="detail-recipe-season" class="text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded-full">Automne</span>
+          </div>
+          <h2 id="detail-recipe-title" class="text-base font-bold leading-tight drop-shadow-sm">Titre de la recette</h2>
+        </div>
+      </div>
+
+      <!-- Corps défilant : Ingrédients par rayon & Étapes -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        
+        <!-- Méta temps et portions -->
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
+          <div class="text-xs font-semibold text-slate-700">
+            <span>⏱️ Préparation : <strong id="detail-recipe-time" class="text-slate-900">25 min</strong></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-500 font-medium">Pour</span>
+            <div class="flex items-center bg-white rounded-xl border border-slate-200 shadow-xs p-0.5">
+              <button id="btn-detail-portion-minus" class="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs hover:bg-slate-200 active:scale-90 transition-all" title="Moins de portions">-</button>
+              <span id="detail-recipe-portions" class="px-2 text-xs font-bold text-brand-700 min-w-[5.5rem] text-center">4 portions</span>
+              <button id="btn-detail-portion-plus" class="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs hover:bg-slate-200 active:scale-90 transition-all" title="Plus de portions">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Ingrédients classés par rayon Grand Frais -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🥦</span> Ingrédients nécessaires
+            </h3>
+            <span id="detail-ingredients-count" class="text-[11px] font-medium text-slate-400">8 articles</span>
+          </div>
+
+          <div id="detail-ingredients-list" class="space-y-2">
+            <!-- Rempli dynamiquement par rayon Grand Frais -->
+          </div>
+        </div>
+
+        <!-- Section Résumé des étapes -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+            <span>👨‍🍳</span> Étapes de préparation
+          </h3>
+          <div id="detail-steps-list" class="space-y-2 text-xs text-slate-600">
+            <!-- Liste ordonnée des étapes -->
+          </div>
+        </div>
+
+        <!-- Actions pour recette maison (modifier / supprimer) -->
+        <div id="detail-custom-actions" class="hidden pt-3 border-t border-slate-200 flex items-center gap-2">
+          <button id="btn-edit-custom-recipe" class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs py-2.5 rounded-xl border border-amber-200 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+            <span>✏️</span> Modifier cette recette
+          </button>
+          <button id="btn-delete-custom-recipe" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-red-200 active:scale-95 transition-all flex items-center justify-center gap-1" title="Supprimer la recette de mon catalogue">
+            <span>🗑️ Supprimer</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Pied de page : Boutons d'action -->
+      <div class="p-3.5 bg-white border-t border-slate-100 flex gap-2.5 safe-bottom">
+        <button id="btn-detail-add-to-plan" class="flex-1 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 font-bold py-3 rounded-2xl text-xs active:scale-95 transition-all text-center">
+          + Au planning
+        </button>
+        <button id="btn-detail-cook" class="flex-2 w-2/3 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-2xl text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <span>👨‍🍳 Cuisiner pas-à-pas</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 1 : MODE CUISINE PAS-À-PAS STYLE JOW (PLEIN ÉCRAN)    -->
+  <!-- ============================================================ -->
+  <div id="cooking-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-lg h-[92vh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+      
+      <!-- En-tête de la recette -->
+      <div class="relative bg-slate-900 text-white p-4">
+        <button id="btn-close-cooking" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-bold text-sm backdrop-blur-sm active:scale-95">
+          ✕
+        </button>
+        <span id="cooking-recipe-tag" class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400 block mb-1">Volaille & Express</span>
+        <h2 id="cooking-recipe-title" class="text-lg font-bold pr-8 leading-tight">Titre de la recette</h2>
+        
+        <div class="flex items-center gap-3 mt-2 text-xs text-slate-300">
+          <span id="cooking-recipe-time">⏱️ 25 min</span>
+          <span>•</span>
+          <span id="cooking-recipe-portions">🥘 4 portions</span>
+        </div>
+      </div>
+
+      <!-- Barre d'avancement des étapes -->
+      <div class="px-5 pt-3 pb-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <span id="cooking-step-indicator" class="text-xs font-bold text-slate-600">Étape 1 sur 4</span>
+        <div class="flex items-center gap-2">
+          <!-- Toggle pour garder l'écran allumé (WakeLock) -->
+          <button id="btn-wake-lock" class="text-[11px] font-semibold text-slate-500 hover:text-brand-600 flex items-center gap-1 border border-slate-200 px-2 py-0.5 rounded-full bg-white">
+            <span>💡</span> <span id="wake-lock-label">Écran allumé</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bannière flottante multi-minuteurs persistante entre les étapes -->
+      <div id="sticky-cooking-timer-banner" class="hidden bg-emerald-800 text-white shadow-sm border-b border-emerald-900">
+        <div class="timers-list px-4 py-2 flex flex-col gap-1.5">
+          <!-- Rempli dynamiquement : un minuteur par étape active -->
+        </div>
+      </div>
+
+      <!-- Corps défilant : Ingrédients de l'étape & Instructions -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        
+        <!-- Minuteur intégré si présent dans l'étape -->
+        <div id="cooking-timer-container" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">⏳</span>
+            <div>
+              <span id="timer-display" class="text-base font-bold text-emerald-900 font-mono">15:00</span>
+              <span class="block text-[11px] text-emerald-700">Minuteur de cuisson</span>
+            </div>
+          </div>
+          <div class="flex gap-1.5">
+            <button id="btn-timer-toggle" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-sm active:scale-95">
+              Démarrer
+            </button>
+            <button id="btn-timer-reset" class="hidden bg-white border border-emerald-300 text-emerald-700 font-bold text-xs px-2 py-1.5 rounded-xl active:scale-95">
+              ↺
+            </button>
+          </div>
+        </div>
+
+        <!-- Ingrédients nécessaires pour cette étape précise -->
+        <div id="cooking-step-ingredients-box" class="space-y-1.5">
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ingrédients nécessaires pour cette étape :</h4>
+          <div id="cooking-step-ingredients-list" class="flex flex-wrap gap-1.5">
+            <!-- Badges d'ingrédients insérés en JS -->
+          </div>
+        </div>
+
+        <!-- Grande instruction claire -->
+        <div class="space-y-2 pt-2">
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Instructions :</h4>
+          <p id="cooking-step-text" class="text-base text-slate-800 leading-relaxed font-medium">
+            Texte de l'étape...
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Pied de page : Boutons Suivant / Précédent -->
+      <div class="p-4 bg-white border-t border-slate-100 flex gap-3 safe-bottom">
+        <button id="btn-cooking-prev" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-xs active:scale-95 transition-all">
+          ← Précédent
+        </button>
+        <button id="btn-cooking-next" class="flex-2 w-2/3 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-2xl text-xs shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center justify-center gap-1.5">
+          <span>Étape suivante</span> →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 2 : SÉLECTIONNER UN PLAT POUR LE JOUR                  -->
+  <!-- ============================================================ -->
+  <div id="select-meal-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md h-[80vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-slate-800 text-sm">Choisir un plat pour le <span id="modal-day-name" class="text-brand-600">repas 1</span></h3>
+          <p id="modal-select-meal-portions" class="text-xs text-slate-400">4 portions</p>
+        </div>
+        <button id="btn-close-select-meal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">✕</button>
+      </div>
+      <div id="modal-meal-choices-list" class="flex-1 overflow-y-auto p-4 space-y-2.5">
+        <!-- Rempli en JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 3 : CRÉER MA PROPRE RECETTE                           -->
+  <!-- ============================================================ -->
+  <div id="custom-recipe-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-lg h-[90vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 text-sm">Ajouter une nouvelle recette</h3>
+        <button id="btn-close-custom-recipe" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs">✕</button>
+      </div>
+      <form id="form-custom-recipe" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <input type="hidden" id="custom-recipe-id" value="">
+        
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Titre de votre recette *</label>
+          <input type="text" id="custom-title" required placeholder="Ex: Curry de poulet aux poireaux fondants" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">⏱️ Temps de prépa (min)</label>
+            <input type="number" id="custom-time" value="25" min="5" max="180" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none font-semibold">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Catégorie</label>
+            <select id="custom-type" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none font-semibold">
+              <option value="volaille">🍗 Volaille</option>
+              <option value="poisson">🐟 Poisson & Marée</option>
+              <option value="vege">🥦 Végétarien</option>
+              <option value="viande">🥩 Bœuf / Porc</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Saison</label>
+            <select id="custom-season" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none font-semibold">
+              <option value="toutes">✨ Toute saison</option>
+              <option value="automne">🍁 Automne</option>
+              <option value="hiver">❄️ Hiver</option>
+            </select>
+          </div>
+          <div class="flex items-center pt-5">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="custom-budget" checked class="rounded text-brand-600 w-4 h-4">
+              <span class="text-xs font-semibold text-slate-700">💰 Plat économique</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Choix de la photo / visuel -->
+        <div class="space-y-2">
+          <label class="font-bold text-slate-700 block">Photo du plat</label>
+          <div class="flex items-center gap-3">
+            <img id="custom-image-preview" src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800&auto=format&fit=crop&q=80" alt="Aperçu" class="w-14 h-14 rounded-2xl object-cover shadow-xs border border-slate-200 flex-shrink-0">
+            <div class="flex-1 min-w-0">
+              <span class="text-[11px] text-slate-500 block mb-1 font-medium">Choisissez un visuel studio ou collez une URL :</span>
+              <div class="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800&auto=format&fit=crop&q=80">🍗 Poulet</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop&q=80">🐟 Saumon</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80">🥩 Bœuf</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1621996346565-e3d5d6281781?w=800&auto=format&fit=crop&q=80">🍝 Pâtes</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1579954115563-e72bf1381629?w=800&auto=format&fit=crop&q=80">🥧 Quiche</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=80">🥘 Curry</button>
+                <button type="button" class="preset-photo-btn px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-700 whitespace-nowrap active:scale-95" data-img="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&auto=format&fit=crop&q=80">🌮 Wraps</button>
+              </div>
+            </div>
+          </div>
+          <input type="url" id="custom-image-url" placeholder="Ou URL d'image personnalisée (https://...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-[11px] outline-none text-slate-600">
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-bold text-slate-700">🥦 Ingrédients pour 4 portions (1 par ligne) *</label>
+            <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Classés auto dans Grand Frais</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-1 leading-snug">Écrivez simplement la quantité et le nom (ex: 500g filet de poulet, 2 poireaux, 200ml crème, 250g riz, sel et poivre)</p>
+          <textarea id="custom-ingredients-text" rows="5" required placeholder="500 g Filets de poulet&#10;2 pièces Blancs de poireaux&#10;200 ml Crème fraîche&#10;280 g Riz basmati&#10;1 cube Bouillon de volaille" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">👨‍🍳 Étapes de préparation (1 par ligne) *</label>
+          <p class="text-[11px] text-slate-400 mb-1 leading-snug">Les temps en minutes créent automatiquement un minuteur interactif !</p>
+          <textarea id="custom-steps-text" rows="4" required placeholder="1. Émincer les poireaux et couper le poulet en morceaux.&#10;2. Faire dorer le poulet 5 minutes à la poêle avec du beurre.&#10;3. Ajouter les poireaux et la crème, laisser mijoter 15 minutes à feu doux." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+        </div>
+
+        <button type="submit" id="btn-submit-custom-recipe" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-2xl text-xs active:scale-95 shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2">
+          <span>✨</span> <span id="custom-submit-label">Enregistrer dans mon catalogue</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL : MES MENUS ENREGISTRÉS                                -->
+  <!-- ============================================================ -->
+  <div id="saved-menus-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-lg max-h-[85vh] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+      <div class="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📂</span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Mes Menus Enregistrés</h3>
+            <span class="text-[11px] text-slate-500">Rechargez un menu précédent ou vos plats restants</span>
+          </div>
+        </div>
+        <button id="btn-close-saved-menus" class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm active:scale-95">✕</button>
+      </div>
+      <div id="saved-menus-list" class="flex-1 overflow-y-auto p-4 space-y-2.5">
+        <!-- Rempli dynamiquement en JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- BARRE DE NAVIGATION INFÉRIEURE STYLE IOS (FIXÉE AU BAS)      -->
+  <!-- ============================================================ -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-bottom">
+    <div class="max-w-xl mx-auto flex items-center justify-around py-2 px-2">
+      
+      <!-- Onglet 1 : Planning -->
+      <button class="nav-tab-btn active flex flex-col items-center gap-0.5 text-brand-600 font-bold transition-all" data-tab="tab-planning">
+        <span class="text-xl">📅</span>
+        <span class="text-[11px]">Planning</span>
+      </button>
+
+      <!-- Onglet 2 : Courses -->
+      <button class="nav-tab-btn flex flex-col items-center gap-0.5 text-slate-400 font-medium transition-all relative" data-tab="tab-courses">
+        <span class="text-xl">🛒</span>
+        <span class="text-[11px]">Courses</span>
+        <!-- Pastille compteur d'articles -->
+        <span id="nav-badge-groceries" class="hidden absolute top-0 right-2 w-4 h-4 rounded-full bg-brand-600 text-white text-[9px] font-bold flex items-center justify-center">0</span>
+      </button>
+
+      <!-- Onglet 3 : Recettes -->
+      <button class="nav-tab-btn flex flex-col items-center gap-0.5 text-slate-400 font-medium transition-all" data-tab="tab-recettes">
+        <span class="text-xl">📖</span>
+        <span class="text-[11px]">Recettes</span>
+      </button>
+
+      <!-- Onglet 4 : Partager -->
+      <button class="nav-tab-btn flex flex-col items-center gap-0.5 text-slate-400 font-medium transition-all" data-tab="tab-partager">
+        <span class="text-xl">⚙️</span>
+        <span class="text-[11px]">Réglages</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- Scripts de l'application -->
+  <script src="recipes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

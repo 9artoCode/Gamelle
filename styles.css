@@ -1,0 +1,415 @@
+/* Styles pour Gamelle & Panier - Design inspiré d'Apple & Jow */
+
+:root {
+  --primary: #059669;
+  --primary-hover: #047857;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-light: #e2e8f0;
+}
+
+html {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations et micro-interactions */
+.tap-effect {
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+.tap-effect:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* Scrollbars discrètes */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+/* Cartes avec ombres douces façon iOS */
+.ios-card {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: all 0.2s ease;
+}
+
+.ios-card:hover {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+}
+
+/* Mode Cuisine - Plein écran immersif */
+#cooking-modal {
+  backdrop-filter: blur(8px);
+}
+
+/* Barre de progression étape */
+.step-dot.active {
+  background-color: #059669;
+  width: 2rem;
+}
+
+/* Rayure des articles cochés */
+.item-checked {
+  text-decoration: line-through;
+  opacity: 0.55;
+  filter: grayscale(0.8);
+}
+
+/* Support de l'encoche et de la barre home iPhone */
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Badges de rayons Grand Frais */
+.badge-fruits-legumes { background: #d1fae5; color: #065f46; }
+.badge-boucherie { background: #ffe4e6; color: #9f1239; }
+.badge-poissonnerie { background: #e0f2fe; color: #075985; }
+.badge-cremerie { background: #fef3c7; color: #92400e; }
+.badge-epicerie { background: #ffedd5; color: #9a3412; }
+.badge-courants { background: #f1f5f9; color: #334155; }
+
+/* Masquer les sections inactives */
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+
+/* Clignotement du minuteur terminé */
+@keyframes timer-blink {
+  0%, 100% { background-color: #ef4444; color: white; }
+  50% { background-color: #ffffff; color: #ef4444; }
+}
+.timer-finished {
+  animation: timer-blink 1s infinite;
+}
+
+/* Sélecteur Clair / Sombre / Système (Réglages) */
+:root {
+  --seg-bg: #eceff3;
+  --seg-active: #ffffff;
+  --seg-text: #64748b;
+  --seg-text-active: #0f172a;
+}
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 0.8rem;
+  background: var(--seg-bg);
+}
+.seg-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.4rem;
+  border-radius: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--seg-text);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.seg-btn.active {
+  background: var(--seg-active);
+  color: var(--seg-text-active);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14), 0 0 0 0.5px rgba(15, 23, 42, 0.06);
+}
+
+/* Mode sombre : activé par la classe .dark sur <html>.
+   Cette classe est posée par le script de thème (Réglages > Apparence) :
+   « Système » suit l'iPhone, « Clair » et « Sombre » forcent le choix.
+   :where() garde la même spécificité qu'avant, l'apparence ne change pas. */
+:root:where(.dark) {
+  --bg-main: #000000;
+  --card-bg: #1c1c1e;
+  --text-main: #f2f2f7;
+  --text-muted: #8e8e93;
+  --border-light: #38383a;
+}
+
+html:where(.dark) {
+  color-scheme: dark;
+  background-color: #000000;
+}
+
+html:where(.dark) body {
+  background-color: #000000;
+  color: #f2f2f7;
+}
+
+html:where(.dark) ::-webkit-scrollbar-thumb {
+  background: #48484a;
+}
+
+html:where(.dark) .ios-card {
+  background: #1c1c1e;
+  border-color: rgba(84, 84, 88, 0.65);
+  box-shadow: none;
+}
+html:where(.dark) .ios-card:hover {
+  box-shadow: none;
+}
+
+/* Hiérarchie iOS : fond #000 → cartes #1c1c1e → zones internes #242426 → boutons #2c2c2e */
+html:where(.dark) body.bg-slate-50 { background-color: #000000; }
+html:where(.dark) .bg-slate-50 { background-color: #242426; }
+html:where(.dark) .bg-slate-100 { background-color: #2c2c2e; }
+html:where(.dark) .bg-slate-200 { background-color: #3a3a3c; }
+html:where(.dark) .bg-white { background-color: #1c1c1e; }
+html:where(.dark) .bg-white\/95 { background-color: rgba(28, 28, 30, 0.9); }
+
+html:where(.dark) .hover\:bg-slate-50:hover { background-color: #2c2c2e; }
+html:where(.dark) .hover\:bg-slate-50\/50:hover { background-color: rgba(255, 255, 255, 0.06); }
+html:where(.dark) .hover\:bg-slate-100:hover { background-color: #2c2c2e; }
+html:where(.dark) .hover\:bg-slate-200:hover { background-color: #3a3a3c; }
+html:where(.dark) .hover\:bg-white:hover { background-color: #2c2c2e; }
+
+html:where(.dark) .text-slate-900 { color: #f2f2f7; }
+html:where(.dark) .text-slate-800 { color: #e5e5ea; }
+html:where(.dark) .text-slate-700 { color: #d1d1d6; }
+html:where(.dark) .text-slate-600 { color: #aeaeb2; }
+html:where(.dark) .text-slate-500 { color: #8e8e93; }
+html:where(.dark) .text-slate-400 { color: #8e8e93; }
+html:where(.dark) .text-slate-300 { color: #98989d; }
+html:where(.dark) .hover\:text-slate-900:hover { color: #ffffff; }
+html:where(.dark) .hover\:text-slate-800:hover { color: #f2f2f7; }
+html:where(.dark) .hover\:text-slate-600:hover { color: #d1d1d6; }
+
+html:where(.dark) .border-slate-100 { border-color: #2c2c2e; }
+html:where(.dark) .border-slate-200 { border-color: #38383a; }
+html:where(.dark) .border-slate-300 { border-color: #48484a; }
+html:where(.dark) .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #2c2c2e; }
+
+html:where(.dark) .bg-emerald-50,
+html:where(.dark) .bg-brand-50 { background-color: rgba(16, 185, 129, 0.16); }
+html:where(.dark) .bg-emerald-50\/90 { background-color: rgba(16, 185, 129, 0.18); }
+html:where(.dark) .bg-emerald-100,
+html:where(.dark) .bg-brand-100 { background-color: rgba(16, 185, 129, 0.24); }
+html:where(.dark) .hover\:bg-emerald-50:hover,
+html:where(.dark) .hover\:bg-brand-50:hover { background-color: rgba(16, 185, 129, 0.22); }
+html:where(.dark) .hover\:bg-emerald-100:hover,
+html:where(.dark) .hover\:bg-brand-100:hover { background-color: rgba(16, 185, 129, 0.3); }
+html:where(.dark) .border-emerald-200,
+html:where(.dark) .border-brand-200 { border-color: rgba(52, 211, 153, 0.4); }
+html:where(.dark) .border-emerald-300,
+html:where(.dark) .hover\:border-brand-200:hover,
+html:where(.dark) .hover\:border-brand-300:hover { border-color: rgba(52, 211, 153, 0.55); }
+html:where(.dark) .text-emerald-600,
+html:where(.dark) .text-brand-600,
+html:where(.dark) .hover\:text-brand-600:hover { color: #34d399; }
+html:where(.dark) .text-emerald-700,
+html:where(.dark) .text-brand-700,
+html:where(.dark) .hover\:text-brand-700:hover { color: #6ee7b7; }
+html:where(.dark) .text-emerald-800 { color: #a7f3d0; }
+html:where(.dark) .text-emerald-900 { color: #d1fae5; }
+html:where(.dark) .text-emerald-950 { color: #ecfdf5; }
+
+/* Boutons blancs posés sur le vert (bannière, minuteurs) : on les laisse clairs */
+html:where(.dark) .bg-white.text-emerald-800 {
+  background-color: #ffffff;
+  color: #065f46;
+}
+html:where(.dark) .bg-white.text-emerald-800:hover {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+html:where(.dark) .bg-amber-50,
+html:where(.dark) .bg-amber-50\/25,
+html:where(.dark) .bg-amber-50\/80 { background-color: rgba(245, 158, 11, 0.16); }
+html:where(.dark) .bg-amber-100 { background-color: rgba(245, 158, 11, 0.24); }
+html:where(.dark) .bg-amber-200\/60 { background-color: rgba(245, 158, 11, 0.3); }
+html:where(.dark) .hover\:bg-amber-100:hover { background-color: rgba(245, 158, 11, 0.3); }
+html:where(.dark) .hover\:bg-amber-200:hover { background-color: rgba(245, 158, 11, 0.38); }
+html:where(.dark) .text-amber-700 { color: #fbbf24; }
+html:where(.dark) .text-amber-800,
+html:where(.dark) .text-amber-800\/90 { color: #fcd34d; }
+html:where(.dark) .text-amber-900,
+html:where(.dark) .text-amber-950 { color: #fde68a; }
+html:where(.dark) .border-amber-200,
+html:where(.dark) .border-amber-200\/90,
+html:where(.dark) .border-amber-300 { border-color: rgba(251, 191, 36, 0.45); }
+html:where(.dark) .ring-amber-200 { --tw-ring-color: rgba(251, 191, 36, 0.45); }
+
+html:where(.dark) .bg-red-50 { background-color: rgba(239, 68, 68, 0.16); }
+html:where(.dark) .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.16); }
+html:where(.dark) .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.26); }
+html:where(.dark) .text-red-500,
+html:where(.dark) .hover\:text-red-500:hover { color: #f87171; }
+html:where(.dark) .text-red-600,
+html:where(.dark) .hover\:text-red-600:hover,
+html:where(.dark) .text-red-700,
+html:where(.dark) .hover\:text-red-700:hover { color: #fca5a5; }
+html:where(.dark) .border-red-200 { border-color: rgba(248, 113, 113, 0.4); }
+
+html:where(.dark) .bg-rose-50 { background-color: rgba(244, 63, 94, 0.16); }
+html:where(.dark) .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, 0.16); }
+html:where(.dark) .hover\:bg-rose-100:hover { background-color: rgba(244, 63, 94, 0.26); }
+
+html:where(.dark) .badge-fruits-legumes { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+html:where(.dark) .badge-boucherie { background: rgba(244, 63, 94, 0.2); color: #fda4af; }
+html:where(.dark) .badge-poissonnerie { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; }
+html:where(.dark) .badge-cremerie { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+html:where(.dark) .badge-epicerie { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+html:where(.dark) .badge-courants { background: #2c2c2e; color: #e5e5ea; }
+
+html:where(.dark) input:not([type="checkbox"]),
+html:where(.dark) textarea,
+html:where(.dark) select {
+  color: #f2f2f7;
+}
+html:where(.dark) input[type="checkbox"] {
+  accent-color: #10b981;
+}
+html:where(.dark) select option {
+  background-color: #1c1c1e;
+  color: #f2f2f7;
+}
+
+/* Toast de synchronisation : légèrement relevé pour rester lisible sur fond noir */
+html:where(.dark) #sync-toast {
+  background-color: rgba(58, 58, 60, 0.96);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Barres fixes façon iOS */
+html:where(.dark) header.bg-white\/95,
+html:where(.dark) nav.bg-white\/95 {
+  background-color: rgba(22, 22, 24, 0.88);
+  border-color: rgba(84, 84, 88, 0.45);
+}
+
+html:where(.dark) .text-rose-500 { color: #fb7185; }
+html:where(.dark) .hover\:text-rose-500:hover { color: #fb7185; }
+
+html:where(.dark) input::placeholder,
+html:where(.dark) textarea::placeholder {
+  color: #8e8e93;
+}
+
+html:where(.dark) #share-qr-image {
+  background: #ffffff;
+}
+
+html:where(.dark) .timer-finished {
+  animation: timer-blink-dark 1s infinite;
+}
+
+:root:where(.dark) {
+  --seg-bg: #2c2c2e;
+  --seg-active: #636366;
+  --seg-text: #98989d;
+  --seg-text-active: #ffffff;
+}
+
+@keyframes timer-blink-dark {
+  0%, 100% { background-color: #ef4444; color: white; }
+  50% { background-color: #1c1c1e; color: #f87171; }
+}
+
+/* ===== Premium : notifications, fenêtres de dialogue, accessibilité ===== */
+body.scroll-locked { overflow: hidden; }
+
+#toast-host {
+  position: fixed; left: 0; right: 0;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  display: flex; justify-content: center; padding: 0 16px;
+  z-index: 90; pointer-events: none;
+}
+.app-toast {
+  pointer-events: auto; display: flex; align-items: center; gap: 14px;
+  max-width: 420px; padding: 10px 16px; border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.94); color: #fff;
+  font-size: 12px; font-weight: 600; line-height: 1.3;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: toast-in .22s ease both;
+}
+.app-toast button {
+  background: none; border: 0; padding: 4px 2px; cursor: pointer;
+  color: #6ee7b7; font-weight: 800; font-size: 12px; white-space: nowrap;
+}
+.app-toast.leaving { animation: toast-out .22s ease both; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(10px); } }
+
+.dlg-backdrop {
+  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  animation: fade-in .18s ease both;
+}
+.dlg {
+  width: 100%; max-width: 320px; padding: 20px 18px 14px; border-radius: 20px;
+  background: var(--card-bg); color: var(--text-main);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: dlg-in .2s ease both;
+}
+.dlg-title { margin: 0 0 6px; font-size: 15px; font-weight: 800; text-align: center; }
+.dlg-msg { margin: 0 0 14px; font-size: 12px; line-height: 1.5; text-align: center; color: var(--text-muted); }
+.dlg-input {
+  width: 100%; margin: 0 0 14px; padding: 10px 12px; font-size: 13px;
+  border: 1px solid var(--border-light); border-radius: 12px; outline: none;
+  background: transparent; color: var(--text-main);
+}
+.dlg-input:focus { box-shadow: 0 0 0 2px #10b981; }
+.dlg-actions { display: flex; gap: 8px; }
+.dlg-btn {
+  flex: 1; padding: 11px 8px; border: 0; border-radius: 12px; cursor: pointer;
+  font-size: 13px; font-weight: 700; background: var(--seg-bg); color: var(--text-main);
+}
+.dlg-btn:active { transform: scale(.97); }
+.dlg-primary { background: #059669; color: #fff; }
+.dlg-danger { background: #e11d48; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dlg-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+
+/* Photos : fondu doux au chargement */
+.img-soft { background-color: var(--seg-bg); }
+
+/* Fenêtres du bas : glissement */
+#recipe-detail-modal > div, #select-meal-modal > div, #saved-menus-modal > div, #custom-recipe-modal > div, #cooking-modal > div {
+  animation: sheet-in .25s ease both;
+}
+@keyframes sheet-in { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+/* Clavier : contour visible uniquement à la navigation clavier */
+button:focus-visible, [role="button"]:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid #10b981; outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
